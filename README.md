@@ -6,8 +6,8 @@ This is the GitHub repository for the [LEADS-4-NDP Project](https://cci.drexel.e
 <br />
 LEADS Fellows have received a summer stipend and completed the following: 
 
-**1)** an online preparatory curriculum
-**2)** an intensive 3-day data science boot camp at Drexel University
+**1)** an online preparatory curriculum<br />
+**2)** an intensive 3-day data science boot camp at Drexel University<br />
 **3)** a ten-week virtual data science internship over the summer with one of our [LEADS partners](http://cci.drexel.edu/mrc/research/leads/leads-people/#ProjectMentors).<br />
 <br />
 
