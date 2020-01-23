@@ -1,0 +1,564 @@
+---
+title: "<medium>Data mining and machine learning</medium>"
+author: <small>Jake Ryland Williams</small>
+date: <small>June 8th, 2019</small>
+output:
+  revealjs::revealjs_presentation:
+    theme: blood
+    center: true
+    transition: slide
+    fig_height: 2
+    fig_caption: true    
+---
+
+# Section 0
+<h2> Overview of data mining and machine learning topics </h2>
+
+## Overview
+1. Introduction and motivation
+   1. Classification vs. regression
+   2. Supervised vs. unsupervised learning
+
+## Overview
+2. Exploratory data analysis
+   1. Centrality and Commonality
+   2. Dispersion
+   3. Extreme behavior
+
+## Overview 
+3. Clustering
+   1. K-means
+   2. Hierarchical
+
+## Overview 
+4. Classification
+   1. Naive Bayes
+   2. Support Vector Machines
+   3. Decision trees and random forests
+   4. Accuracy and positive prediction
+   5. Precison, recall, and $F_1$
+
+## Overview 
+5. Regression
+   1. Linear and multi-linear regression
+   2. Support vector regression regression
+   3. Random forest regression
+
+# Section 1
+<h2> Introduction and motivation to data analytics </h2>
+
+## Introduction
+1.1 Classification vs. regression
+
+* Both involve quantitative models that 'fit' data, 
+* i.e., achieve good/best output w/respect to performance. 
+* But what's the difference?
+
+> In general, for regression models the output variables take the form of continuous values, and in classification the output variables takes class labels.
+
+## Regression
+![Here, the distances between the point values and output model quantities quantify 'success'.](linear_regression.jpg)
+
+## Classification
+![Here, the correctness between the groups and output model labels quantify 'success'.](precisionrecall.jpg)
+
+## Introduction
+1.2 Machine learning
+
+* Adopting a succinct definition of machine learning (ML) from a [blog post](https://www.analyticsvidhya.com/blog/2015/07/difference-machine-learning-statistical-modeling/):
+
+> Machine learning is an algorithm that can learn from data without relying on rules-based programming.
+
+* classification and regression fall into ML.
+* This broadness includes many 'good ideas' algs.,
+* i.e., logical procedures that can be optimized for 'success'.
+* Perhaps we need a more general way of organizing algs.?
+
+## Introduction
+1.3 Supervised vs. unsupervised learning
+
+* The question is if some notion of 'truth' is known.
+* Such data are often called a 'gold standard',
+* If an algs. optimization uses them, it's _supervised_,
+* and if not, it's _un-supervised_.
+* E.g., clustering (un-superv.) vs. classification (superv.):
+  + clusters are predicted groups; no labels are known.
+
+# Section 2
+<h2> Exploratory data analysis (EDA) </h2>
+
+## EDA 
+2.1 Looking at data
+
+* It's easy to dig in, if data are reasonably clean.
+* Visually, we can compare numeric data values,
+* and with categorical data, we can review occurrence.
+
+## Scatter plot
+
+* Analytics languages make data inspection easy.
+* The standard `plot()` is an easily customized scatter plot:
+```
+iris <- read.csv("./data/iris.csv")
+quartz(c(6,6))
+jpeg('./fig/petal-length_width.jpg')
+plot(iris$petal_length, iris$petal_width, 
+     pch = 20, cex = 2,
+     col = rgb(red = .1, green = .1, blue = .1, alpha = 0.5),
+     xlab = 'Petal length', ylab = 'Pedal width',
+     main = 'Petal length vs. width')
+dev.off()
+```
+
+## Scatter plot
+![Scatter is the basic plot type, and compares along two numerical aces. 
+  Do notice any patterns, just from looking at the data?](./fig/petal-length_width.jpg)
+
+## Bar plot
+
+* The `barplot()` makes an easy categorical comparison:
+```
+webfilter <- read.csv("./data/webfilter.csv")
+quartz(c(6,6))
+jpeg('./fig/appropriate-sites.jpg')
+
+n_appr = length(webfilter$final_judgment[which(webfilter$final_judgment >= 0)])
+barplot(c(n_appr, dim(webfilter)[1] - n_appr),
+     ylab = 'Number of sites', names.arg = c('Appropriate','Inappropriate'),
+     main = 'Number of sites by content appropriateness')
+dev.off()
+```
+
+## Bar plot
+![Categories are discrete, but can still have the occurrence compared. 
+  What sort of sites are more common and how disproportionate is the balance?](./fig/appropriate-sites.jpg)
+
+## EDA
+2.2 Centrality and commonality
+
+* Commonality refers to how much of something there is.
+* To organize, `sort`ing determines least-to-most:
+  ```{r}
+  sort(c(12, 5, 19.3, 5, 8, 6, 5))
+  ```
+* Relatedly, `order()` produces a rankings:
+  ```{r}
+  order(c(12, 5, 19.3, 5, 8, 6, 5))
+  ```
+* that is, the sorting index of least-to-most.
+
+## Centrality
+
+* Centrality refers to numerical data 'middleness'.
+* The arithmetic average (mean) of data is one way:
+  ```{r}
+  mean(c(12, 5, 19.3, 5, 8, 6, 5))
+  ```
+* but it's not robust to 'outliers', or extreme points:
+  ```{r}
+  mean(c(12000, 5, 19.3, 5, 8, 6, 5))
+  ```
+* unlike the _median_, or sort-central value:
+  ```{r}
+  median(c(12000, 5, 19.3, 5, 8, 6, 5))
+  ```
+
+## Histogram
+
+* A `hist`-ogram bins near points in common,
+* which provides insight & backdrop to centrality:
+  ```
+  iris <- read.csv("./data/iris.csv")
+  quartz(c(6,6))
+  jpeg('./fig/iris-hist.jpg')
+
+  hist(iris$petal_length, 
+       col = rgb(red = .1, green = .1, blue = .1, alpha = 0.5),
+       ylab = 'Frequency', xlab = 'Petal length',
+       main = 'Petal lengths: mean (red) & median (blue)')
+  abline(v = mean(iris$petal_length, na.rm = TRUE), 
+         col = 'red', lwd = 2)
+  abline(v = median(iris$petal_length, na.rm = TRUE), 
+         col = 'blue', lwd = 2)
+  dev.off()
+```
+
+## Histogram
+![Histogram showing density of iris' (commonality) and distribution centrality
+  in the mean (red) and median (blue) line positions.
+  Is centrality telling us the whole story here?](./fig/iris-hist.jpg)
+
+## EDA
+2.3 Dispersion & extreme behavior
+    
+* Dispersion refers to how spread apart things are,
+* and median is actually part of a larger concept.
+* _Quantiles_ are sort-position values by portion,
+* e.g., a 25th percentile is larger than 25% of the data:
+  ```{r}
+  quantile(c(12, 5, 19.3, 5, 8, 6, 5), probs = c(0.25, 0.5, 0.75))
+  ```
+
+## Variance
+* But there's also an averaging-way to measure dispersion!
+* _Variance_, is the average squared mean deviation:
+  $$\sigma^2 = \frac{1}{N}\sum_{i = 1}^{N}(\overline{x} - x_i)^2$$
+* but to get something more like 'avg. difference from mean'
+* the rooted, _standard deviation_, $\sigma$ is oft used:
+  ```{r}
+  var(c(12, 5, 19.3, 5, 8, 6, 5))^0.5
+  ```
+
+## Extremeness
+* Think of $\sigma$ as a scale---ruler---for extremeness, 
+* or alternatively, the _inter-quartile range (IQR)_,
+* measuring the range between 25th and 75th quantiles:
+  ```{r}
+  quarts = quantile(c(1, 5, 6, 1, 5, 12, 5, 19, 5, 8, 6, 7, 5), 
+                    probs = c(0.25,0.75))
+  IQR = diff(quarts)
+  print(quarts)
+  print(IQR)
+  ```
+
+## Outliers
+* Outliers are points that deviate wildly from the middle.
+* With $\sigma$ 'outlier' points lie $x\sigma$ beyond $\overline{x}$.
+* or more than $x$ IQRs from upper/lower quartiles.
+* Here's some (relatively mild) $1.5\sigma$ outliers:
+  ```{r}
+  iris <- read.csv("./data/iris.csv")
+  pet_len_std = var(iris$petal_length, na.rm = TRUE)^0.5
+  mean_outs = which(abs(iris$petal_length - mean(iris$petal_length, 
+                        na.rm = TRUE)) > 1.5*pet_len_std)  
+  print(iris$petal_length[mean_outs])
+  ```
+
+## Box plot
+* _Box plots_ visualize centrality, spread, and extremeness.
+* The box shows 25th--75th quantiles, crossed by median,
+* and whiskers extend up to the extreme points.
+* Here, whisker cutoff is set for 0.5-IQR deviants:
+  ```
+  iris <- read.csv("./data/iris.csv")
+  quartz(c(6,6))
+  jpeg('./fig/iris-boxplot.jpg')
+
+  boxplot(iris$petal_length, ylab = 'Petal length', range = 0.5,
+          main = 'Petal lengths box and whiskers plot')
+  dev.off()
+```
+* which makes for a mild definiton of outlier.
+
+## Box plot
+![Box plot showing the median and interquartile range,
+  with whiskers extending until the 'outlier' definition,
+  here, 0.5 IQR-lengths above/below the IQR.
+  Does anything exhibit strange central tendencies?](./fig/iris-boxplot.jpg)
+
+
+# Section 3
+<h2>Clustering</h2>
+
+## Clustering
+
+* These algorithms group data together with similar values,
+* which means we need a notion of 'similar'.
+* Another challenge is selecting the number of clusters.
+* Algorithms are generally either 'flat' or hierarchical.
+
+## Clustering
+3.1 K-means
+    
+* This flat-clustering algorithm assumes $K$ clusters,
+* for which initial random centers are generated.
+* Then iteratively:
+  1. each point is assigned to its nearest center
+  2. new centers are averaged from the recent assignments
+* When clusters stop varying, the algorithm ceases.
+
+## K-means
+![An animation of K-means clustering with 3 clusters;
+  centers slowly stabilize into position.](./fig/K-means_convergence.gif)
+
+## K-means
+* Running K-means is fairly straightforward:
+   ```{r}
+   petals = subset(iris, select=c(petal_length,petal_width))
+   km = kmeans(petals, centers=2)
+   ```
+* are the clusters reasonable?
+  ```{r}
+   print(list(km$cluster[c(1:5,51:55)],iris$species[c(1:5,51:55)]))
+   ```
+
+## K-means
+* To visualize output, we might want to color-by cluster:
+  ```
+  quartz(c(6,6))
+  jpeg('./fig/petal-length_width-clusters.jpg')
+  clust_1 = which(km$cluster == 1)
+  clust_2 = which(km$cluster == 2)
+  plot(iris$petal_length, iris$petal_width, 
+       pch = 20, cex = 2, col = 'white',
+       xlab = 'Petal length', ylab = 'Pedal width',
+       main = 'Petal length vs. width')
+  points(iris$petal_length[clust_1], iris$petal_width[clust_1], 
+         pch = 20, cex = 2,
+         col = rgb(red = 1, green = 0, blue = 0, alpha = 0.5))
+  points(iris$petal_length[clust_2], iris$petal_width[clust_2], 
+         pch = 20, cex = 2,
+         col = rgb(red = 0, green = 0, blue = 1, alpha = 0.5))
+  points(km$centers[1,1], km$centers[1,2], col = "red", pch = 2, cex = 5)
+  points(km$centers[2,1], km$centers[2,2], col = "blue", pch = 5,cex = 5)
+  dev.off()
+  ```
+* and be sure to plot the cluster centers.
+
+## K-means
+![Here two clusters seem to have doen a nice job,
+  but is 2 really the right number?
+  Should we use any other features?](./fig/petal-length_width-clusters.jpg)
+
+## Clustering
+3.2 Hierarchical
+    
+* Hierarchical clustering builds a tree of close points.
+* All start in their own clusters, and
+* closes-clusters are merged iteratively to build up.
+* Now, the choice of K is to pick a 'cut point'.
+
+## Hierarchical clustering
+* Again, implementation is straightforward:
+   ```{r}
+   # euclidean distance for 'closeness'
+   d = dist(petals, method = "euclidean")    
+   clust_fit = hclust(d, method="ward.D2")
+   groups <- cutree(clust_fit, k=2) 
+   ```
+* are the clusters reasonable?
+   ```{r}
+   print(list(groups[c(1:5,51:55)],iris$species[c(1:5,51:55)]))
+   ```
+
+# Section 4
+<h2>Classification</h2>
+
+## Classification
+
+* These algorithms assign/predict labels according to 'features'
+* which which might be either numberical or categorical.
+* A lot of classification is binary, often for simplicity.
+* True labels are known and used for training & evaluation,
+* which make this into a type of supervised learning.
+* Like clustering, classifer quantitative foundations vary.
+
+## Classification
+4.1 Naive Bayes
+    
+* These [probabilistic classifiers](https://en.wikipedia.org/wiki/Naive_Bayes_classifier) have commonly been used in spam filters.
+* They estimate classes as conditional likelihoods
+* based on labeled data instances, 
+* assuming all column-features interact independently.
+
+## Naive Bayes
+
+* Here, we'll have to first `install.packages('e1071')`.
+* Then the process is reasonably straightforward.
+* However, the first thing we should always do:
+  + split our data into training and test samples:
+  ```{r}
+  set.seed(13)
+  sample = sample.int(n = nrow(iris), 
+                      size = floor(.8*nrow(iris)), 
+                      replace = F)
+  train = iris[sample, ]
+  test = iris[-sample, ]
+  ```
+
+## Naive Bayes
+
+* Once we have our split, the process is smooth:
+  ```{r}
+  library(e1071)
+  nb_model = naiveBayes(species ~ ., data = train)
+  nb_predictions = predict(nb_model, as.data.frame(test)[,1:4])
+  list(nb_predictions[1:10],test$species[1:10])
+  ```
+
+## Evaluation
+* Let's check to see which labels we got right:
+  ```{r}
+  print(which(nb_predictions != test$species))
+  ```
+* This makes it easy to compute accuracy
+  ```{r}
+  print(length(which(nb_predictions == test$species))/
+        length(test$species))
+  ```
+
+## Classification
+4.2 Support Vector Machines (SVMs)
+    
+* SVMs can be run from the same package (`e1071`).
+* These models separate data by widest margens.
+* Margins can have arbitrary shapes, e.g., lines,
+* with 'shapes' defined by _kernel_ functions.
+* Linear SVMs are just lines separating points.
+
+## SVMs
+![Here, a 'hyperplane' is found that separates the data.](./fig/Svm_max_sep_hyperplane.jpg)
+
+## SVMs
+
+* Running an SVM is much the same as NaiveBayes:
+  ```{r}
+  svm_model = svm(species ~ ., data = train)
+  svm_predictions = predict(svm_model, as.data.frame(test)[,1:4])
+  list(svm_predictions[1:10],test$species[1:10])
+  ```
+
+## SVMs
+
+* Does the accuracy appear to be any better?
+  ```{r}
+  print(which(svm_predictions != test$species))
+  print(length(which(svm_predictions == test$species))/
+        length(test$species))
+  ```
+
+## Classification
+4.4 Decision trees and random forests
+
+* _Decision trees_ are another common family.
+* These are one-directional flow charts 
+* with branching points assessing questions.
+* Terminal branches are 'leaves', 
+* which are the decisions made by the model:
+
+![](./fig/Titanic_Survival_Decison_Tree.png)
+
+## Decision trees and random forests
+
+* Figuring out questions and ordering is tricky.
+* Trees are also rigid, commonly over-fit, and
+* Initialization plays a big role in end-models.
+* This is why _many_ trees are often averaged over,
+* which is called _random forest (RF)_ modeling.
+
+## Decision trees and random forests
+
+* Implementing RF requires `install.packages('randomForest')`,
+* which conveniently works like the `e1071` package:
+  ```{r}
+  library(randomForest)
+
+  rf_model = randomForest(species ~ ., data = train)
+  rf_predictions = predict(rf_model, as.data.frame(test)[,1:4])
+  ```
+
+## Decision trees and random forests
+* Does the accuracy appear to be any better?
+  ```{r}
+  print(which(rf_predictions != test$species))
+  print(length(which(rf_predictions == test$species))/
+        length(test$species))
+  ```
+
+## Classification
+4.5 Accuracy and positive prediction
+
+* Confusion matrix
+
+## Classification
+4.6 Precison, recall, and $F_1$
+    
+*
+
+# Section 5
+<h2>Regression</h2>
+
+## Regression
+5.1 Linear and multi-linear
+    
+* Linear regression is a common starting place.
+* The goal: use a line to predict a cloud of points.
+* But what happens if the data has more than two columns?
+* This is _multi-linear regression_ more generally,
+* and extends the notion of 'line through a cloud'.
+
+## Linear regression
+
+* Linear regression is a built-in functionality:
+  ```{r}
+  lin_mod = lm(iris$petal_length ~ iris$petal_width)
+  ```
+* and the root mean squared error (RMSE) is an evaluation:
+  ```{r}
+  print(mean((iris$petal_length - lin_mod$fitted.values)^2)^0.5)
+  ```
+
+## Linear regression
+
+* Visualizing output is a handy check;
+* we can build a trained model 'by hand':
+  ```
+  jpeg('./fig/petal-length_width-model.jpg')
+  plot(iris$petal_width, iris$petal_length, 
+       pch = 20, cex = 2,
+       col = rgb(red = .1, green = .1, blue = .1, alpha = 0.5),
+       xlab = 'Petal width', ylab = 'Pedal length',
+       main = 'Petal length vs. width')
+  lines(iris$petal_width, lin_mod$fitted.values, col = 'red') 
+  dev.off()
+  ```
+
+## Linear regression
+![The best-fit line goes through the data, 
+  and is supervised to 
+  predict the 'y' value (petal length)
+  from the 'x' value (petal width)](./fig/petal-length_width-model.jpg)
+
+## Linear regression
+
+* To predict from multiple columns, modify the formula
+  ```{r}
+  multi_lin_mod = lm(iris$petal_length ~ iris$petal_width 
+                                       + iris$sepal_length 
+                                       + iris$sepal_width)
+  ```
+* Did the evaluation exhibit a 'better' model, i.e., less error?
+  ```{r}
+  print(mean((iris$petal_length - multi_lin_mod$fitted.values)^2)^0.5)
+  ```
+
+## Regression
+5.2 Support vector regression regression
+
+* An SVM-like regression can be used, too.
+* This is called _support vector Regression (SVR)_:
+  ```{r}
+  svm_reg = svm(petal_length ~ petal_width 
+                             + iris$sepal_length 
+                             + iris$sepal_width, iris)
+  svm_pred = predict(svm_reg, iris)
+  ```
+* Did the evaluation exhibit a 'better' model, i.e., less error?
+  ```{r}
+  print(mean((iris$petal_length - svm_pred)^2)^0.5)
+  ```
+
+## Regression
+5.3 Random forest regression
+    
+* As with the others, we can do regression here, too.
+  ```{r}
+  rf_reg = randomForest(petal_length ~ petal_width 
+                                     + iris$sepal_length 
+                                     + iris$sepal_width, iris)
+  rf_pred = predict(rf_reg, iris)
+  ```
+* Did the evaluation exhibit a 'better' model, i.e., less error?
+  ```{r}
+  print(mean((iris$petal_length - rf_pred)^2)^0.5)
+  ```

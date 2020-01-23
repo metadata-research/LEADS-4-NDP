@@ -1,0 +1,369 @@
+---
+title: "<medium>Large scale and parallel computing</medium>"
+author: <small>Jake Ryland Williams</small>
+date: <small>June 8th, 2019</small>
+output:
+  revealjs::revealjs_presentation:
+    theme: blood
+    center: true
+    transition: slide
+    fig_height: 2
+    fig_caption: true    
+---
+
+# Section 0
+<h2> Overview of Large scale and parallel computing topics topics </h2>
+
+## Overview
+1. Introduction and motivation
+   1. System components and bottlenecks
+   2. Map-reduce, hadoop, and spark
+   3. Configuration
+   4. Types of SparkR operations
+
+## Overview
+2. Basic `SparkR` usage
+   1. Starting a session
+   2. Sorting and collecting data
+   3. Grouping and aggregation
+   4. Dataframe modification
+   5. Filtering values
+   6. Joining dataframes
+
+# Section 1
+<h2> Introduction and motivation to distributed processing </h2>
+
+## Introduction
+1.1 System components and bottlenecks
+
+* For large data, understanding bottlenecks is essential.
+* These commonly happen in a few distinct machine components:
+  1. _processors_ operate on data,
+  2. _disks_ store data persistently,
+  3. _memory_ stores data ephemerally, and
+  4. _networks_ transmit data.
+
+## Introduction
+1.1 System components and bottlenecks
+
+* As a process, data are generally
+  1. read from disks,
+  2. transmitted across a network,
+  3. fed into memory, and 
+  4. processed for a result.
+
+## Introduction
+1.1 System components and bottlenecks
+
+* On a single machine, network's aren't an issue,
+* but data might be too large
+* to either be read/fed or processed.
+* But network speeds are still relatively _slow_,
+* making multi-machine (parallel) processing challenging.
+
+## Introduction
+1.1 System components and bottlenecks
+
+* So how does parallel processing work?
+* Well, data are stored across many disks,
+* which require networks for machines to access.
+* These pools are called _distributed file systems_ (DFSs),
+* and form backbones for cluster computing.
+* Accessign DFS entails network traffic, 
+* which forms a significant bottleneck for processing!
+
+## Introduction
+1.1 System components and bottlenecks
+
+* When we have data across multiple disks,
+* access to multiple processing machines is essential.
+* But these must communicate/coordinate across networks, too.
+* This makes for another network bottleneck.
+* What's the solution?
+* Limiting data movement, and processor communication,
+* which is precisely what map-reduce, Hadoop and Spark do.
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* For a big data process, the question is generally
+> Can it be separated into tasks that have little or nothing to do with one another?
+* Remember, this is because network transmission is slow
+* and we often want to conduct work in parallel processes.
+* Local machines have what's called a _shared everything_ environment. 
+* A laptop's threads share the computer's entire memory capacity. 
+* For clusters, a _shared nothing_ environment is ideal.
+* In a shared nothing environment, 
+* each processor operates a portion of data, 
+* with no knowledge of the rest of the data.
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* Not everything is shared-nothing parallelizable,
+* but many simple, useful algorithms are,
+* and sometimes called _embarrassingly parallel_. 
+* E.g., incrementing each number in an array by +1 
+* doesn't require any communication (shared nothing).
+* Simple, apply-all operations like this are called '`map()`'.
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* Here's an example of `map()` in R.
+* It has to be loaded from the `purrr` library:
+```{r}
+library(purrr)
+t(map(c(1,2,3,4,5),function(x) x^2))
+```
+* Notice we have to pass a function as the second argument.
+* 'unnamed' functions like this are convenient on the fly.
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* More complicated algorithms are parallelizable, too,
+* and may require multiple steps and some communication.
+* But not every task is apply-all, i.e., `map()`.
+* Another common operation is called `reduce()`,
+* which is a way for managing aggregation operations,
+* like summing up a bunch of numbers.
+
+## Introduction
+1.3 Map-reduce, Hadoop and Spark
+
+* Many algorithms are 'near-embarrassingly parallel',
+* conducted as iterations of map and reduce cycles,
+* where a control processer will
+* will manage the communication of limited data
+* to the processors working in parallel.
+
+## Introduction
+1.3 Map-reduce, Hadoop and Spark
+![](./fig/emb_par.gif)
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* Here's an example of `reduce()` in R.
+* It's also in the `purrr` library:
+```{r}
+t(reduce(c(1,2,3,4,5),function(x,y) x + y))
+```
+* Here, `reduce` aggregates recursively from left to right,
+* but when the reduce `function` is associative/commutative,
+* we can be assured execution order won't change the outcome.
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* When chained together,
+* map-reduce operations can produce high-level outcomes
+* that are _entirely scalable_.
+* Here's an example computing vector distance:
+```{r}
+x = c(1,7,4,2,78,35,3,6,2,6)
+y = c(5,2,6,8,9,3,2,7,9,10)
+d = reduce(map(x - y, function(z) z^2), 
+           function(a,b) a + b) ^ 0.5
+print(d)
+```
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* As discussed, map-reduce is a programming _pattern_.
+* Early proprietary software was called this by Google,
+* but open-source _Hadoop_ software ultimately appeared.
+* But it's not just the map-reduce dance that Hadoop does!
+* Hadoop also offers HDFS---a distributed file system.
+* HDFS is _essential_ for really big data,
+* because it mixes processing with DFS,
+* allowing most data to never pass through network.
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* Working with native Hadoop requires java, and
+* while some libraries exist for R, Python, etc.,
+* their function is often limited.
+* Hadoop/HDFS is really for _very_ large data,
+* where so much exists you don't want to move it around.
+* While Hadoop uses disk well, it makes only limited use
+* of memory, which provides fast data interaction.
+* This (and more) is where spark comes in.
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* Spark is software supported by the makers of Hadoop,
+* and focuses on in memory data utilization,
+* in addition to robust processing,
+* and more pre-defined, flexible user-friendly tools.
+* Because it uses memory, it doesn't need a DFS!
+* So while Spark can connect to Hadoop as controller
+* it can also be used on a laptop to max out resources!
+
+## Introduction
+1.2 Map-reduce, Hadoop and Spark
+
+* Regardless of Hadoop or Spark, etc.,
+* map-reduce is the scheme and has one other component.
+* Data are often paired with labels (keys),
+* that organize handoff between map and reduce.
+* this handoff is called the _shuffle_,
+* which really just means a sorting by label.
+
+## Introduction
+1.3 Map-reduce, Hadoop and Spark
+![](./fig/mr.jpg)
+
+## Introduction
+1.3 Configuration
+
+* `SparkR` is an R library and can be installed like usual
+* It's documentation can be found [here](https://spark.apache.org/docs/2.2.0/api/R/index.html) on CRAN:
+* But SparkR will likewise require java,
+* since that's really doing the work in the background.
+* Note: you must use java version 8 for `SparkR`,
+* so download from [here](https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+* Likewise, there's documentation on the [developer's site](https://spark.apache.org/docs/latest/sparkr.html),
+* and lots of helpful tutorials, like [this one](https://docs.databricks.com/spark/latest/sparkr/overview.html#sparkr-in-notebooks) from databricks.
+
+## Introduction
+1.4 Types of SparkR operations
+
+* Spark funcations fall into _transformations_ and _actions_.
+* The distinction is part of what helps make spark scalable.
+* Transformations are not executed until _necessary_,
+* while actions force all preceeding tranformations to run,
+* and ultimately result in output.
+
+## Introduction
+1.4 Types of SparkR operations
+
+* This lazy strategy minimizes `SparkR`'s workload and 
+* allows `SparkR` to consolidate operations,
+* making processing decisions obscured from users,
+* further optimizing the evaluation of expressions.
+* So don't be surprised if it looks like nothing happens!
+* This probably means your 'transforming' data,
+* and need to invoke an action to get a result.
+
+# Section 2 
+<h2>Basic `SparkR` usage</h2>
+
+## `SparkR` Usage
+2.1 Starting a session
+
+* Starting a `SparkR` requires knowing the desired threads,
+* e.g., `master = 'local[4]'` creates 4 local threads,
+* and `spark.driver.memory` sets the memory per thread.
+* This let's us squeeze the most of available resources
+  ```{r, message = FALSE}
+  library(SparkR)
+  sparkR.session(master = 'local[4]', 
+                 sparkConfig = list(spark.driver.memory = '4g'))
+  ```
+* Important: determine thread/memory capacities of your system!
+
+## `SparkR` Usage
+2.1 Starting a session
+
+* Next, we might want data in our session.
+* This is easy with the `read.df()` command,
+* and we can still check dimensions and names:
+```{r}
+  loans = read.df("./data/loan.csv", source = "csv", 
+                  header="true", inferSchema = "true")
+  print(dim(loans))
+  print(names(loans))
+```
+
+## `SparkR` Usage
+2.2 Sorting and collecting data
+
+* sparkR functions may have different names from base R
+* for example, we want `arrange(x, col)` for sorting.
+* Notice the negative used for a reverse (high to low) sort
+```{r}
+sorted_loans = arrange(loans, -loans$funded_amnt)
+```
+
+## `SparkR` Usage
+2.2 Sorting and collecting data
+
+* But wait, where's the output?
+* Well, `arrange` is a transformation
+* and we need an action to get a result.
+* `collect(x)` executes a whole process (costly)
+* while `head(x, n) let's us just see n results:
+```{r}
+head(sorted_loans, 5)
+```
+
+## `SparkR` Usage
+2.2 Sorting and collecting data
+
+* Sometimes, we only want a few columns;
+* for this, we'll now have to use `select(x,cols)`:
+```{r}
+head(select(sorted_loans, c('funded_amnt')), 20)
+```
+
+## `SparkR` Usage
+2.3 Grouping and aggregation
+
+* `SparkDataFrames` support common functions.
+* For example you can `groupBy(x,col) a column 
+* and then `count()` the groups across the data easily:
+  ```{r}
+  head(count(groupBy(loans,loans$loan_status)), 5)
+  ```
+
+## `SparkR` Usage
+2.4 Dataframe modification
+
+* Dataframe operations feel native with `SparkR`.
+* It's easy to make a new column (remaining principle),
+* as long as we're sure to compare numeric values:
+  ```{r}
+  cast(loans$total_rec_prncp, 'double')
+  loans$princ_rem =  loans$loan_amnt - loans$total_rec_prncp
+  head(select(loans, loans$princ_rem), 5)
+  ```
+* Note: `'double'` is a spark data type like R's `'numeric'`,
+* for a full range of type mapping, see [this page](https://spark.apache.org/docs/latest/sparkr.html#data-type-mapping-between-r-and-spark).
+
+## `SparkR` Usage
+2.5 Filtering values
+
+* While arithmetic is handled,
+* operating on a dataframe suse use spark build-ins
+* For example, `filter()` lets us drill down:
+  ```{r}
+  incomp_loans = filter(loans, loans$princ_rem > 0)
+  head(select(incomp_loans, incomp_loans$princ_rem), 5)
+  ```
+* We can really use any logical condition!
+
+## `SparkR` Usage
+2.6 Joining dataframes
+
+* Sometimes matching rows on tables is needed,
+* which is accomplished by `join(z,y,condition,jointype)`,
+* where `z` and `y` are datframes
+* `condition` is a logical expression for matching rows,
+* and `jointype` is `'inner'`, `'outer'`, etc.
+* To see Spark `join()`s in action, check out the Exercise!
+
+## `SparkR` Usage
+2.7 Joining dataframes
+
+* Often, it's not just data management we need to do.
+* Perhaps there's some analytics we need to scale out?
+* In Hadoop we'd have to design map-reduce software,
+* but entire implementations of ML algs. exist for spark.
+* This provides the feel of working as we have before,
+* when we were running algs. as serial processes.
+* To explore the possibilities, check out [the docs](https://spark.apache.org/docs/latest/sparkr.html#algorithms)!

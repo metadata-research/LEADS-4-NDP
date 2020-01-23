@@ -1,0 +1,383 @@
+---
+title: "<medium>R data pre-processing</medium>"
+author: <small>Jake Ryland Williams</small>
+date: <small>June 7th, 2018</small>
+output:
+  revealjs::revealjs_presentation:
+    theme: blood
+    center: true
+    transition: slide
+    fig_height: 2
+    fig_caption: true    
+---
+
+# Overview
+
+## Slide navigation
+- Topics are organized from left to right.
+- Each topic goes into depth from top to bottom.
+
+## Motivation
+- Pre-processing starts immediately, after acquisition
+- Just loading data (depending on type) can be hard
+- Sometime you might not be aware you're doing pre-processing
+- Pre-processing is often 'glue code', passing data from one step to another.
+
+## Pre-processing topics
+1. Objects and workspaces
+   - Directory navigation
+   - Data types: text, numeric, boolean
+   - Characters, floats, boolean, NAs
+   - Containers: ordered and associative arrays
+   - Vectors, matrices, data frames, and lists
+
+## Pre-processing topics
+2. Loading/writing files
+   - Saving and loading workspaces
+   - Basic file i/i: really, everything text
+   - Delimited files &amp; spreadsheets
+   - Complex, flexible  data: JSON &amp; XML
+
+## Pre-processing topics
+3. Interacting with files and data objects
+   - Working with indices: sorting, sampling, and filtering
+   - Managing names and attributes
+   - Checking on files, objects, and values
+   - Bringing datasets together
+
+# Objects and workspaces
+
+## Know your file system
+- Pre-processing includes getting data in order
+- Your data will live on a file hierarchy
+- To see what's in a directory, use `list.files(path)`
+- To create a directory, use `dir.create(path)`
+- Use `get()` and `setwd(path)` to keep instance near data
+- Or just point to/from data with paths; keep instance fixed
+
+## Filesystems
+![This is a caption!](filesystem.png)
+
+## Filesystem navigation
+```
+# get the current working directory
+getwd()
+# set the working directory
+setwd(path)
+# list files in a directory
+print(list.files(path))
+# create a new directory
+dir.create.path(path)
+```
+
+## Keeping track of files and objects
+- It's helpful to know what files and objects exist
+- Sometimes you also need to get of these things
+- Other times you need to be careful no to overwrite!
+- Use `ls()` to see what object are in a workspace
+- Use `file.exists()` to see if a file exists
+- Use `rm()` to remove an object from a workspace
+
+## Workspace management
+```
+# view all objects in the workspace
+print(ls())
+# remove an object, d, from the current workspace
+rm(d)
+# check if file exists at path
+b <- file.exists(path)
+```
+
+## Creating &amp; navigating objects
+- R has usual character, boolean, and numeric &amp; datetime objects
+- But analytic languages have hallmark container objects
+- These hold different objects, and in different ways
+- At a high level, we have ordered and associative arrays
+- Ordered arrays store data elements through positioning
+- Associative arrays utilize names/keys to store values
+
+## Characters, numerics, and datetimes
+```
+# make a numeric object
+x <- 2.7
+print(is.numeric(x))
+
+# make a character object
+x <- "This is a character object"
+print(is.characer(x))
+
+# make some datetime objects and deltas
+t1 = as.Date('1915-6-16')
+print(is.numeric(t1))
+t2 = as.Date('1915-8-12')
+print(is.numeric.Date(t2))
+tdelt <- t1 - t2
+print(tdel)
+print(as.double(tdelt, units = "hours")
+```
+
+## Types of ordered arrays
+<center>
+<div style="width:600px; height:600px">
+![Ordered arrays](OrderedArrays.jpg)
+</div>
+</center>
+
+## Ordered arrays in R
+- To store data in order, there are vectors and matrices
+```
+# make a vector and  access the second element
+d <- c(x, y, z)
+print(d[2])
+
+# binding row vectors together into a matrix
+M <- rbind(c(1,2,3), c(4,5,6))
+# binding columns vectors together into a matrix
+M <- cbind(c(1,2,3), c(4,5,6))
+# access a matrix's second row, first column
+print(M[2,1])
+```
+
+## Associative arrays
+- Many people think of ordered arrays:data as synonymous
+- But some data are more conveniently stored associatively
+- Generally, associative arrays nest key-value pairs,
+- allowing more flexibility/generality thank simple ordering
+- But associative arrays do well to have clear schemas
+- A schema is a plan/design for how to lay out data
+- Associative arrays can have ordered components
+- But these values are keyed for in a hierarchy.
+- Structure like this should be planned out in a schema
+
+## Schemas
+<center>
+<div style="width:600px">
+![This is a schema](schema.png)
+</div>
+</center>
+
+
+## R associative arrays (lists)
+- Associative arrays are called "lists" in R
+```
+# make a list of keys and values
+l <- list(
+  num = 13,
+  numvec = c(1,2,3),
+  char = "This is a character",
+  boolval = FALSE,
+  mat = cbind(c(1,2,3), c(4,5,6))
+)
+
+# access a list's value by a key
+print(l[['mat']])
+
+# get keys to a list
+print(names(l))
+```
+
+## But then what's a data frame?
+- Matrices are ordered arrays, but for numbers.
+- Data frames are still ordered arrays,
+- but they also have associative characteristics.
+- They store different data types (e.g., numeric and char).
+- Also, they can have row and column names for access.
+- You can use these names like `list()` names.
+- Note: loaded spreadsheets are generally data frames
+
+## Data frames
+```
+# make a heterogeneous ordered array (data frame)
+d <- data.frame(rbind(c(1,2,3), c('a', 'b', 'c')))
+
+# give it some columns names
+colnames(d) <- c("this", "that", "the other")
+
+print(d)
+```
+
+# Load/writing files
+
+## What's a workspace?
+- A workspace is a programming language's state
+- "State" means all objects, functions, &amp; libraries
+- But this means workspaces aren't portable
+- In other words, save/load workspaces for personal use
+- For portability, we'll talk about other file types
+
+## Saving/loading workspaces
+```
+# save workspace
+save(list=ls(), file="path/to/workspace.Rdata")
+
+# load workspace
+load("path/to/workspace.Rdata")
+```
+
+## Line-based file reading
+- This is a standard feature in programming
+- You save/load most data with special commands
+- But any file can be read by lines
+- By-line reading also helps processing scale
+- Generally, there are three modes:
+  - read (`'r'`): open for viewing
+  - write (`'w'`): open for overwriting
+  - append (`'a'`): open for extension
+
+## Basic, line-based file i/o
+```
+# open a file connection in read mode
+con <- file(path, 'r')
+# read n lines from an open 'r'-connection
+line = readLines(con, n)
+# close the connection
+close(con)
+# open connection in write mode
+con <- file(path, 'w')
+# write a line of data
+writeLines(line, con)
+close(con)
+```
+
+## Spreadsheets (ordered arrays)
+- It's all about delimiters here
+- Newlines (`'\n'`) always separate lines
+- Commas (`','`), pipes (`'|'`) and tabs (`'\t'`) are common
+- All flat delims. result in equiv data&mdash;which to use?
+- Well, what does Excel use?
+  - Excel is actually a lot more complicated!
+  - It also includes formatting and formulae.
+  - Also, multiple sheets make a 3-d ordered array!
+
+## Flat spreadsheets
+```
+# read an ordered array
+read.table(file, sep, header = TRUE)
+# write an ordered array
+write.table(file, sep, header = TRUE, row.names = FALSE)
+```
+
+## Excel
+```
+library(readxl)
+# Load the nth sheet of an Excel file
+d <- read_excel(file, sheet = n)
+```
+
+## Reading complex, associative data
+- Two main data types for web content: XML and JSON
+- JSON: A key-value protocol developed for javascript
+  - looks a lot like python dictionaries or R lists
+  - very cross-platform compatible; easy to work with
+  - used by many tech companies to distribute data
+- XML: Tags make data-containers; these can have attributes
+  - since HTML $\subset$ XML, parse www pages like XML
+  - many long-term databases are stored in this format
+  - archaic markup a bit less easy to work with
+  
+## JSON
+```
+library(rjson)
+# interpret json from a json character serialization
+json_data = fromJSON(json_text)
+# convert R object to json characer serialization
+json_text = toJSON(json_data)
+```
+
+## XML
+```
+library(XML)
+# read an XML/html document
+doc <- xmlParse("path/to/file.xml")
+```
+
+## Accessing content on the web
+- We can treat HTML like data, but how to get it?
+- Browsers do this, but programming HTML is "scraping".
+- So to access, all we need is an HTML doc's URL
+- For data APIs the process is the same: construct a URL
+
+## Downloading content
+```
+# download load web content behind URL
+web_text <- paste(readLines(url), collapse="")
+```
+
+# Interacting with files and data objects
+
+## Data integration
+- Bringing data together is big for pre-processing
+- Ideally, structured data can be joined, etc.
+- Metadata and annotation are essential here.
+- But what are other ways data can be linked, besides keys?
+  - E.g., lat/lon coordinates can link data geographically
+- Here, focus on joins, but think broadly about data linking
+
+## Spreadsheet joins
+```
+# inner join
+d_i <- merge(df1, df2)
+# outer join
+d_o <- merge(
+    x = df1, y = df2, all = TRUE,
+    by.x = "column name", by.y = "column name")
+# left outer join
+d_lo <- merge(
+     x = df1, y = df2, all.x = TRUE,
+     by.x = "column name", by.y = "column name")
+# right outer join
+d_ro merge(
+     x = df1, y = df2, all.y = TRUE,
+     by.x = "column name", by.y = "column name")
+```
+
+## Navigating objects by indices
+- R is primed for ordered-array operations
+- Ordered arrays are accessed via indices
+- Sometimes, we want to re-order an array
+- Other times it's helpful to sample, or filter
+- How do we maintain connections?
+- I.e., keep a sorted array links to another intact?
+- Suggestion: track indicies instead of re-ordering
+
+## Sorting vectors
+- We say sorting, but this creates sorting indices
+- The data (`vec`) are unchanged,
+- but you can access them in sorted order
+```
+# get sorting indices of a vector
+ix <- order(vec, decreasing = TRUE)
+```
+
+## Sampling from vectors
+- The same wisdom can be applied to sampling
+- `sample()` actually draws from an object
+- So, feed a indices, and sample from them
+- Also, don't forget your seeds!
+```
+# set a sampling seed
+set.seed(42)
+# get sample indices, size n
+ix <- sample(1:length(x), size = n)
+```
+
+## Finding indices of matching elements (filtering)
+- How doe we get the elements matchin a criterion?
+- This is called filtering data.
+- To filter a vector, `which()` returns matching indices
+- Alternatively, vectors can take logical indexing
+```
+# which element indices inf v are equal to x?
+ix <- which(v == x)
+print(ix)
+print(v[ix])
+
+# the same, but as a logical index
+bool_ix <- v == x
+print(bool_ix)
+print(v[bool_ix])
+
+# an what if we want to filter a vector of character objects?
+match_ix <- grep(pattern, x, value = FALSE, perl = TRUE)
+```
+
