@@ -1,0 +1,464 @@
+---
+title: "<medium>R text processing and analysis</medium>"
+author: <small>Jake Ryland Williams</small>
+date: <small>June 8th, 2018</small>
+output:
+  revealjs::revealjs_presentation:
+    theme: blood
+    center: true
+    transition: slide
+    fig_height: 2
+    fig_caption: true    
+---
+
+# Overview
+
+## Text processing topics
+1. Character objects
+   - Accessing substructure
+   - Leveraging delimiters
+   - Finding patterns
+   - Making replacements
+
+## Text processing topics
+2. Featurization
+   - tokenization
+   - term frequency
+   
+## Text processing topics
+3. Working with collections
+   - Building a corpus
+   - Content transformations
+   - Term weighting
+
+## Text processing topics
+4. Intro analysis methods
+   - Overview
+   - Sentiment analysis
+   - Topic models/clustering
+   
+# Character objects
+
+## Really, character objects are non-atomic
+- Are numbers atomic or can you decompose them?
+- Well, integers have prime factorizations,
+- and floats can be sci-notation decomposed
+- But character objects are simply categories?
+- Not necessarily, characters generally have substructure!
+- Think roots, stems, etc.&mdash;how do we access these?
+
+## get a substring
+- Like vectors, character substructure is ordered
+- Use start-stop indices to slice out a segement
+```
+# pull a substring out of a larger string
+subchar <- substr("Mary has a little lamb.", start=3, stop=12)
+```
+
+## Split and join characters and vectors
+- If substructure is regular enough, split/join!
+- This is the essence of delimited files,
+- where "regular substructure" is a delimiter standard.
+```
+# join a vector of characters together using space as delimiter
+# [note: the collapse argument allows vector-wise operation;
+#        to row-wise paste vectors, leave this argument out]
+doc <- paste(charvec, sep = " ", collapse = "")
+# split a character object in to a vector by a space delimiter
+charvec <- strsplit(as.character(x), split = " ")
+```
+
+## Which ones have the thing?
+- What are we talking about here?
+- Finding strings matching a pattern!
+- And you guessed it, this is regex...
+- We love regex! You should too!
+- Syntax varies between languages;
+- Perl-style is pervasive, but posix is, too
+- To "get" any, you must [read the docs](http://stat.ethz.ch/R-manual/R-devel/library/base/html/regex.html)!
+- Or just find a nice [cheat sheet](https://www.rstudio.com/wp-content/uploads/2016/09/RegExCheatsheet.pdf).
+
+## Find the match indices from a character vector
+- Note: `perl=TRUE` fixes the syntax to perl-style
+```
+charvec <- c("this thing", "that thing", "the other thing")
+ix <- grep("thing|that", charvec, perl = TRUE)
+print(ix)
+print(charvec[ix])
+```
+
+## Find the substring match indices from a character object
+```
+charvec <- c("this thing", "that thing", "the other thing")
+# let's match strings starting with "th" and continuing until space
+ix <- gregexpr("th[^ ]+", charvec[3], perl = TRUE)
+# the main data are the starting points
+starts = as.vector(ix[[1]])
+# but it's important to see the lengths too
+lengths = attr(ix[[1]], "match.length")
+print(starts, lengths)
+# for fun, let's loop through a few
+for (i in 1:length(starts)){
+    print(substr(charvec[3], start = starts[i], stop = starts[i] + lengths[i]))
+}
+```
+
+## Transforming content
+- We do this all the time in text editors
+- The old "match and replace" protocol
+- Except now we can match/replace on patterns
+- These allow more flexible/general transformation
+
+## match and replace in character
+- Let's put a speech impediment into our documents
+- Here, we use `gsub(match, replace, string, perl = TRUE)`
+```
+charvec <- c("this thing", "that thing", "the other thing")
+for (i in 1:length(charvec)){
+    charvec[i] <- gsub("th", "ph", charvec[i], perl = TRUE)
+}
+print(charvec)
+```
+
+## match and replace with grouping
+- Sometimes you want to augment a flexible match
+- Calling this augment, instead of replace,
+- because we're adding content.
+- parentheses, `(...)` group matches and can be nested
+- grouped matches are recovered in numerical order: `\\1, \\2, ...`
+- order is outside to inside, left to right
+```
+charvec <- c("this thing", "that thing", "the other thing")
+for (i in 1:length(charvec)){
+    charvec[i] <- gsub("( [^ ]+)$", " is a\\1", charvec[i], perl = TRUE)
+}
+print(charvec)
+```
+
+# Making features from text
+
+## What's a feature?
+- Well, how do you read text?
+- By book, paragraph, sentence&mdash;word?!
+- So, how do we carve words out of text?
+- This process is more generally called tokenization.
+- Why? Some things (tokens) are not true "words".
+- IMHOp, this is pedantic, but that's another convo.
+- So, how? Well, regex and string splitting!
+
+## Basic, space-wise tokenization
+- Does this make good "words"? What could make this better?
+```
+spaceTokenize <- function(x){
+   return(unlist(strsplit(as.character(x), split = " ")))
+}
+print(spaceTokenize("This, that, and all of the other things, too."))
+```
+
+## Basic, word/non-word character tokenization
+- What's a word character? a,b,c, ..., z; 0&ndash;9; others?
+```
+nonwordTokenize <- function(x){
+   return(unlist(strsplit(as.character(x), split = "[^A-z0-9]+", perl = TRUE)))
+}
+print(nonwordTokenize("This, that, and all of the other things, too."))
+```
+
+## Counting beans
+- Getting quantitative with text usually involves word frequency
+- Frequency simply mean the number of times a word occurs
+- You can do this low-level, with tokenization, lists, and loops.
+- But why do that when R has function for this!
+- Using this, we can even provide our custom tokenization.
+
+## Counting word frequencies
+- The main function here is `termFreq()`
+- It has a default, space-tokenization,
+- but custom, control parameters are passed through a list.
+```
+library(tm)
+# count space-tokenized words
+f <- termFreq(corpus[[3]])
+print(f)
+
+# count custom tokenized words
+f <- termFreq(corpus[[3]], control = list(tokenize = nonwordTokenize))
+print(f)
+```
+
+# Working with collections of documents
+
+## What's a corpus?
+- A body? A collection of documents!
+- But a corpus is also an object type in R
+- The purpose is interaction with many character objects.
+- Why not just use a character vector?
+- Content-transformations are applied to corpora, easily.
+
+## Creating a corpus from a character vector
+- Several different content source options exist.
+- The easiest to work with is probably `VectorSource()`
+- This works from a character vector.
+- To see other `tm` source options, run `getSources()`
+```
+charvec <- c("this thing", "that thing", "the other thing")
+corpus <- VCorpus(VectorSource(charvec))
+print(corpus[[2]])
+```
+
+## Transformations
+- A corpus isn't that different from a char vector,
+- but it's set up to work easily with transformations.
+- Transformations include lowercasing, etc.,
+- and the built-ins can be viewed, running `getTransformations()`.
+- We can also perform custom transformations that we build.
+
+## Applying a content transformation
+- Transformations must be passed through `content_transformer()`
+- To use them and apply to all docs, run `tm_map()`:
+```
+charvec <- c("this thing", "that thing", "the other thing")
+corpus <- VCorpus(VectorSource(charvec))
+corpus <- tm_map(corpus, content_transformer(tolower))
+print(as.character(corpus[[3]]))
+```
+
+## Custom content transformation
+- Here, we have to define our transform function.
+- This then gets used in the same way as a built in,
+- but passed with additional paramaters (e.g., match and replace patterns).
+```
+charvec <- c("this thing", "that thing", "the other thing")
+corpus <- VCorpus(VectorSource(charvec))
+MatchReplace <- content_transformer(function(x, pattern, replacement) gsub(pattern, replacement, x))
+corpus <- tm_map(corpus, MatchReplace, "thing", "jawn")
+print(as.character(corpus[[3]]))
+```
+
+## Stemming and lemmatization
+- The two have similar goals&mdash;reducing inflection forms,
+- but they got about it in different ways.
+- So stemmers use rules, while leammatizers rely on vocabularies
+
+## Stemming and lemmatization
+- Let's lean on a quote from the [stanford NLP docs](https://nlp.stanford.edu/IR-book/html/htmledition/stemming-and-lemmatization-1.html):
+
+<div>
+Stemming usually refers to a crude heuristic process that chops off the ends of words in the hope of achieving this goal correctly most of the time, and often includes the removal of derivational affixes. Lemmatization usually refers to doing things properly with the use of a vocabulary and morphological analysis of words, normally aiming to remove inflectional endings only and to return the base or dictionary form of a word, which is known as the lemma .
+</div>
+
+
+## Stemming a corpus
+```
+charvec <- c("this", "that", "and the others' jawns")
+corpus <- VCorpus(VectorSource(charvec))
+corpus <- tm_map(corpus, stemDocument) # stem the document
+print(as.character(corpus[[3]]))
+```
+
+## lemmatizing a corpus
+- This is trickier, since it's the "right way"
+- This means managing dictionaries&mdash;not just algorithms
+- Unfortunately, lemmatization doesn't come with `tm`
+- But it does exist in the `textstem` library!
+
+## lemmatization vs. stemming
+```
+library(textstem)
+doc <- "The jogging jogger jogged until they could jog no more."
+# lemmatize
+print(lemmatize_strings(doc))
+# stem
+print(stemDocument(doc))
+```
+
+## Are all words created equal?
+- To text analysts, no.
+- Content words are relevant to analysis
+- But many words only support prose, and are not content-specific
+- These usually include determiners and conjunctions,
+- but can be defined by analysts, too.
+- These "stop words" are customary to remove from a corpus.
+
+## stop-word removal
+```
+# rebuild corpus
+charvec <- c("this jawn", "that jawn", "and the others' jawns")
+corpus <- VCorpus(VectorSource(charvec))
+# remove the default collection of stopwords from a corpus
+corpus <- tm_map(corpus, removeWords, stopwords("english"))
+
+# rebuild corpus
+charvec <- c("this jawn", "that jawn", "and the others' jawns")
+corpus <- VCorpus(VectorSource(charvec))
+# remove a chosen set of stop words from a corpus
+corpus <- tm_map(corpus, removeWords, c("and", "the", "this", "that"))
+```
+
+## Document frequencies across a corpus
+- Remember word frequency?
+- What happens when you want to compare documents?
+- What data structure should we use? Ordered arrays!
+- Terms and Documents on the rows and columns
+- But this means a corpus-wide vocabulary is necessary
+- So don't compute frequencies separately,
+- and apply frequency calcs. to a whole corpus at once!
+
+## Build a TDM
+- Here, each row represents a document, and
+- each column represent's a words usage
+```
+charvec <- c("this jawn", "that jawn", "and the others' jawns")
+corpus <- VCorpus(VectorSource(charvec))
+# let's use our good tokenization
+TDM <- DocumentTermMatrix(corpus, control = list(tokenize = nonwordTokenize))
+print(as.matrix(TDM))
+```
+
+## Term weighting
+- Is frequency the only way to express word importance?
+- Since I'm asking, you know the answer&mdash;no!
+- Having documents in a corpus-collection give us leverage.
+- We can ask, how to up-weight doc-specific terms?
+- A handy technique for this is called TF-IDF
+- a.k.a., term-frequency inverse-document-frequency
+- It uses term frequency, but the second half is a misnomer
+- Document frequency means:
+  - What portion of docs. contain a word?
+- TF is then multiplied by the inverse <b>log</b> of this
+- So, if all docs have a term, TF-IDF = 0
+- If only one doc contains a word, IF-IDF is boosted
+
+## Applying TF-IDF in R
+```
+charvec <- c("this jawn", "that jawn", "and the others' jawns")
+corpus <- VCorpus(VectorSource(charvec))
+TDM <- DocumentTermMatrix(corpus, control = list(tokenize = nonwordTokenize,
+                          weighting = function(x) weightTfIdf(x, normalize = TRUE)))
+print(as.matrix(TDM))
+```
+
+# The tip of the text analysis iceberg
+
+## Text analysis&mdash;NLP, computational linguistics?
+- Both use CPUs, what's the difference between these fields?
+  - CL: focused on understanding/explaining linguistic phenomena
+  - NLP: focused on building language-processing technologies
+- Think of this difference as a science-engineering split
+- But then where's text analysis?
+  - TA is probably more reference to applied, informatic work
+  - So, maybe use NLP tools, but any ML applied to text is fair game
+
+## A high-level breakdown of analytic areas
+- Term-frequency-based ML applications
+  - uses frequencies and TDM as numeric representations
+  - focuses less on context and navigation
+  - uses probability and stats to identify/predict attributes
+- Grammar, parsing, and syntax
+  - Applies linguistic structure and rules to navigate text
+  - Lot's of term-term relations and tagging
+  - e.g., parts of speech (POS)
+- Semantic processing
+  - Focuses on machine-understanding of meaning
+  - e.g., how "happy" is a writer (sentiment)
+  - also includes semantic role labeling,
+  - i.e., who did what to whom.
+
+## Dictionary methods for sentiment
+- This is probably the most common approach
+- Words are scored with varying value ranges
+  - e.g., how happy is "puppy", on a scale from 1&ndash;5?
+- Dictionary methods lack context, which is important for sentiment!
+- For example, negation should be taken care of.
+- However, many systems (including the below) don't deal with this.
+
+## Sentiment analysis
+- Notice the varying scores being applied by the tool
+```
+library(SentimentAnalysis)
+sentiment <- analyzeSentiment("Yay, I'm so happy we've made it into analysis; so much fun!")
+print(sentiment)
+sentiment <- analyzeSentiment("Boo, I hated that data pre-processing junk! ")
+print(sentiment)
+```
+
+## convert sentiment to binary
+- It's often simpler to just have binary (+/-) information:
+- This is just one tweak to the output
+- The module has a lot of other features,
+- and even allows you to include you own sentiment data
+- For a comprehensive look, check out [this vignette](https://cran.r-project.org/web/packages/SentimentAnalysis/vignettes/SentimentAnalysis.html).
+```
+binsent <- convertToBinaryResponse(sentiment)
+print(binsent)
+```
+
+## Topic models
+- Some use this terminology for a specific type of method,
+- referring to complex, generative models, like LDA.
+- But I prefer to talk about this more generally,
+- thinking about clusters of words or documents as "topics".
+- To get a feel for this we'll apply a few basic ML methods.
+
+## Latent semantic analysis
+- Ugh, someone got excited and renamed a very well-known method.
+- And only because they applyed it to text!
+- LSA is just a linear algebra routine to decompose matrix data.
+- LSA is just singular value decomposiion applied to a TDM
+- The result of LSA is two set of vectos that explain matrix
+- These explain variation in the terms and documents, respectively.
+- Think of these vectors as term- and document-topics
+- We also get a collection of singular values
+- These tell us how important the topics are.
+
+## Applying LSA in R
+- Note: the input is row-terms by column-documents
+```
+proj <- lsa(t(as.matrix(TDM)))
+words = row.names(LSAspace$tk)
+
+# look at the first row- (word) space topic
+ix <- order(abs(proj$tk[,1]), decreasing = TRUE)
+print(words[ix][1:10])
+
+# look at the first column- (document) space topic
+ix <- order(abs(proj$dk[,1]), decreasing = TRUE)
+articles <- metadata[['entry-term']]
+print(articles[ix][1:10])
+```
+
+## But LSA is not the only topic model!
+- Really, any clustering algorithm has similar outcome
+- But these offer data partitions, i.e., clusters are non-overlapping.
+- Also, these only cluster rows or columns, one at a time.
+- Let's see what some of our favorites can do.
+
+## K-means clustering
+```
+library(caret)
+# decide how many clusters
+k <- 5
+# convert to matrix
+data <- as.matrix(TDM)
+# fit the model
+fit <- kmeans(data, k)
+# append cluster assignment
+data <- data.frame(data, fit$cluster)
+```
+
+## Hierarchical clustering
+```
+library(caret)
+
+# convert to matrix
+data <- as.matrix(TDM)
+# create a distance matrix
+d <- dist(data, method = "euclidean")
+# hierarchical clustering with tree cut
+fit <- hclust(d, method = "ward")
+# decide how many clusters
+k <- 5
+groups <- cutree(fit, k=k)
+# append cluster assignment
+data <- data.frame(data, fit$cluster)
+```
