@@ -11,7 +11,7 @@ LEADS Fellows have received a summer stipend and completed the following:
 **3)** a ten-week virtual data science internship over the summer with one of our [LEADS partners](http://cci.drexel.edu/mrc/research/leads/leads-people/#ProjectMentors).<br />
 <br />
 
-**LEADS-4-NDP Faculty and Staff:**<br />
+##**LEADS-4-NDP Faculty and Staff:**##<br />
 
 • **Jane Greenberg**, Alice B. Kroeger Professor, Director of the Metadata Research Center, and Associate Department Head for Graduate Affairs (Lead PI) <br />
 • **Xia Lin**, Professor, and Department Head, Information Science Department (Lead PI) <br />
