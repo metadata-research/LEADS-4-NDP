@@ -1,4 +1,5 @@
-# LEADS4NDP
+# LEADS-4-NDP
+
 This is the GitHub repository for the [LEADS-4-NDP Project](https://cci.drexel.edu/mrc/research/leads/).
 
 **LIS Education and Data Science for the National Digital Platform (LEADS-4-NDP)** is preparing next generation LIS faculty and early career information professionals to meaningfully integrate data science into their research and work endeavors. LEADS-4-NDP is supported by the Institute of Library and Museum Services (IMLS) Laura Bush 21st Century Librarian Program, and includes a cohort of 21 talented [LEADS Fellows](http://cci.drexel.edu/mrc/research/leads/leads-4-ndp-fellows/) ready to address and advance data science challenges in the workplace and education.<br />
